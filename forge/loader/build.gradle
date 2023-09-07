@@ -53,8 +53,8 @@ dependencies {
     }
 }
 
-ext.mixinSrg = new File(project.buildDir, "resources/main/stoneluckperms.mixins.srg")
-ext.mixinRefMap = new File(project.buildDir, "resources/main/stoneluckperms.refmap.json")
+ext.mixinSrg = new File(project.buildDir, "resources/main/luckperms.mixins.srg")
+ext.mixinRefMap = new File(project.buildDir, "resources/main/luckperms.refmap.json")
 
 build {
     dependsOn(":forge:build")
@@ -65,11 +65,11 @@ jar {
     manifest {
         attributes(
                 'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                'Implementation-Title': 'StoneLuckPerms',
-                'Implementation-Vendor': 'StoneLuckPerms',
+                'Implementation-Title': 'LuckPerms',
+                'Implementation-Vendor': 'LuckPerms',
                 'Implementation-Version': project.ext.fullVersion,
-                'Specification-Title': 'StoneLuckPerms',
-                'Specification-Vendor': 'StoneLuckPerms',
+                'Specification-Title': 'LuckPerms',
+                'Specification-Vendor': 'LuckPerms',
                 'Specification-Version': '1',
                 'FMLCorePlugin': 'me.lucko.luckperms.forge.loader.ForgeLoaderPluginCore',
                 'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker'
@@ -113,7 +113,7 @@ compileJava {
 }
 
 shadowJar {
-    archiveFileName = "StoneLuckPerms-Forge-${project.ext.fullVersion}.jar"
+    archiveFileName = "LuckPerms-Forge-${project.ext.fullVersion}.jar"
     project.configurations.implementation.canBeResolved = true
     configurations = [project.configurations.implementation, project.configurations.shade]
 

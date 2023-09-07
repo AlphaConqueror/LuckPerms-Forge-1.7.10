@@ -33,7 +33,7 @@ public class ForgeLoaderPluginCore implements IFMLLoadingPlugin {
 
     public ForgeLoaderPluginCore() {
         try {
-            Mixins.addConfiguration("stoneluckperms.mixins.json");
+            Mixins.addConfiguration("luckperms.mixins.json");
         } catch (final Exception ignored) {}
     }
 
