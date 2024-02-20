@@ -31,7 +31,6 @@ import cpw.mods.fml.common.ModContainer;
 import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
 import cpw.mods.fml.common.event.FMLServerStartedEvent;
 import cpw.mods.fml.common.event.FMLServerStoppingEvent;
-import cpw.mods.fml.common.versioning.ArtifactVersion;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -53,13 +52,15 @@ import me.lucko.luckperms.forge.util.ForgeEventBusFacade;
 import net.luckperms.api.platform.Platform;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
+import net.minecraftforge.common.ForgeVersion;
 import org.apache.logging.log4j.LogManager;
 
 /**
  * Bootstrap plugin for LuckPerms running on Forge.
  */
-public final class LPForgeBootstrap
-        implements LuckPermsBootstrap, LegacyLoaderBootstrap, BootstrappedWithLoader {
+public final class LPForgeBootstrap implements LuckPermsBootstrap, LegacyLoaderBootstrap,
+        BootstrappedWithLoader {
+
     public static final String ID = "luckperms";
 
     /**
@@ -220,13 +221,8 @@ public final class LPForgeBootstrap
 
     @Override
     public String getServerVersion() {
-        final String forgeVersion =
-                Optional.ofNullable(Loader.instance().getIndexedModList().get("Forge"))
-                        .map(ModContainer::getProcessedVersion).map(ArtifactVersion::toString)
-                        .orElse("null");
-
         return this.getServer().map(MinecraftServer::getMinecraftVersion).orElse("null") + "-"
-                + forgeVersion;
+                + ForgeVersion.getVersion();
     }
 
     @Override

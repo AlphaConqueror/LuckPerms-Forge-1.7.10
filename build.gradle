@@ -26,16 +26,13 @@ subprojects {
     def determinePatchVersion = {
         // get the name of the last tag
         def tagInfo = new ByteArrayOutputStream()
+
         exec {
-            commandLine 'git', 'describe', '--tags'
+            commandLine 'git', 'rev-list', 'HEAD', '--count'
             standardOutput = tagInfo
         }
-        tagInfo = tagInfo.toString()
 
-        if (!tagInfo.contains('-')) {
-            return 0
-        }
-        return tagInfo.split("-")[1]
+        return tagInfo.toString().replace("\n", "")
     }
 
     project.ext.majorVersion = '5'
