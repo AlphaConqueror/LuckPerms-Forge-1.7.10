@@ -41,6 +41,7 @@ import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S3FPacketCustomPayload;
 import net.minecraft.server.MinecraftServer;
 
+
 public class PluginMessageMessenger extends AbstractPluginMessageMessenger implements Messenger {
 
     private final LPForgePlugin plugin;
@@ -61,11 +62,10 @@ public class PluginMessageMessenger extends AbstractPluginMessageMessenger imple
     protected void sendOutgoingMessage(final byte[] buf) {
         final AtomicReference<SchedulerTask> taskRef = new AtomicReference<>();
         final SchedulerTask task = this.plugin.getBootstrap().getScheduler().asyncRepeating(() -> {
-            @SuppressWarnings("unchecked") final EntityPlayerMP player =
-                    this.plugin.getBootstrap().getServer()
-                            .map(MinecraftServer::getConfigurationManager)
-                            .map(serverConfigurationManager -> (List<EntityPlayerMP>) serverConfigurationManager.playerEntityList)
-                            .map(players -> Iterables.getFirst(players, null)).orElse(null);
+            @SuppressWarnings("unchecked") final EntityPlayerMP player = this.plugin.getBootstrap()
+                    .getServer().map(MinecraftServer::getConfigurationManager)
+                    .map(serverConfigurationManager -> (List<EntityPlayerMP>) serverConfigurationManager.playerEntityList)
+                    .map(players -> Iterables.getFirst(players, null)).orElse(null);
 
             if (player == null) {
                 return;
@@ -73,8 +73,9 @@ public class PluginMessageMessenger extends AbstractPluginMessageMessenger imple
 
             final ByteBuf byteBuf = Unpooled.buffer();
             byteBuf.writeBytes(buf);
-            final Packet packet =
-                    new S3FPacketCustomPayload(AbstractPluginMessageMessenger.CHANNEL, byteBuf);
+
+            final Packet packet = new S3FPacketCustomPayload(AbstractPluginMessageMessenger.CHANNEL,
+                    byteBuf);
 
             player.playerNetServerHandler.sendPacket(packet);
 

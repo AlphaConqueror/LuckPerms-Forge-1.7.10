@@ -73,6 +73,7 @@ import static me.lucko.luckperms.common.config.generic.key.ConfigKeyFactory.lowe
 import static me.lucko.luckperms.common.config.generic.key.ConfigKeyFactory.mapKey;
 import static me.lucko.luckperms.common.config.generic.key.ConfigKeyFactory.notReloadable;
 import static me.lucko.luckperms.common.config.generic.key.ConfigKeyFactory.stringKey;
+import static me.lucko.luckperms.common.config.generic.key.ConfigKeyFactory.stringListKey;
 
 /**
  * All of the {@link ConfigKey}s used by LuckPerms.
@@ -640,6 +641,11 @@ public final class ConfigKeys {
     public static final ConfigKey<String> REDIS_ADDRESS = notReloadable(stringKey("redis.address", null));
 
     /**
+     * The addresses of the redis servers (only for redis clusters)
+     */
+    public static final ConfigKey<List<String>> REDIS_ADDRESSES = notReloadable(stringListKey("redis.addresses", ImmutableList.of()));
+
+    /**
      * The username to connect with, or an empty string if it should use default
      */
     public static final ConfigKey<String> REDIS_USERNAME = notReloadable(stringKey("redis.username", ""));
@@ -720,6 +726,11 @@ public final class ConfigKeys {
     public static final ConfigKey<String> BYTESOCKS_HOST = stringKey("bytesocks-host", "usersockets.luckperms.net");
 
     /**
+     * If TLS (https/wss) should be used when connecting to bytesocks
+     */
+    public static final ConfigKey<Boolean> BYTESOCKS_USE_TLS = booleanKey("bytesocks-use-tls", true);
+
+    /**
      * The URL of the web editor
      */
     public static final ConfigKey<String> WEB_EDITOR_URL_PATTERN = stringKey("web-editor-url", "https://luckperms.net/editor/");
@@ -742,6 +753,16 @@ public final class ConfigKeys {
 
     public static List<? extends ConfigKey<?>> getKeys() {
         return KEYS;
+    }
+
+    /**
+     * Check if the value at the given path should be censored in console/log output
+     *
+     * @param path the path
+     * @return true if the value should be censored
+     */
+    public static boolean shouldCensorValue(final String path) {
+        return path.contains("password") || path.contains("uri");
     }
 
 }

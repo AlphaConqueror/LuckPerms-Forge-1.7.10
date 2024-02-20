@@ -116,5 +116,4 @@ public class ForgeSenderFactory extends SenderFactory<LPForgePlugin, ICommandSen
     protected boolean isConsole(final ICommandSender sender) {
         return sender instanceof MinecraftServer || sender instanceof RConConsoleSource;
     }
-
 }

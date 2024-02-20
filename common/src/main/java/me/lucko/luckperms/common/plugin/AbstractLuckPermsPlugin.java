@@ -52,8 +52,10 @@ import me.lucko.luckperms.common.locale.TranslationRepository;
 import me.lucko.luckperms.common.messaging.InternalMessagingService;
 import me.lucko.luckperms.common.messaging.MessagingFactory;
 import me.lucko.luckperms.common.plugin.logging.PluginLogger;
+import me.lucko.luckperms.common.plugin.util.HealthCheckResult;
 import me.lucko.luckperms.common.storage.Storage;
 import me.lucko.luckperms.common.storage.StorageFactory;
+import me.lucko.luckperms.common.storage.StorageMetadata;
 import me.lucko.luckperms.common.storage.implementation.file.watcher.FileWatcher;
 import me.lucko.luckperms.common.storage.misc.DataConstraints;
 import me.lucko.luckperms.common.tasks.CacheHousekeepingTask;
@@ -64,6 +66,7 @@ import me.lucko.luckperms.common.verbose.VerboseHandler;
 import me.lucko.luckperms.common.webeditor.socket.WebEditorSocket;
 import me.lucko.luckperms.common.webeditor.store.WebEditorStore;
 import net.luckperms.api.LuckPerms;
+import net.luckperms.api.platform.Health;
 import okhttp3.OkHttpClient;
 
 import java.io.IOException;
@@ -74,8 +77,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -106,6 +112,8 @@ public abstract class AbstractLuckPermsPlugin implements LuckPermsPlugin {
     private LuckPermsApiProvider apiProvider;
     private EventDispatcher eventDispatcher;
     private SimpleExtensionManager extensionManager;
+
+    private boolean running = false;
 
     /**
      * Performs the initial actions to load the plugin
@@ -148,8 +156,17 @@ public abstract class AbstractLuckPermsPlugin implements LuckPermsPlugin {
                 .callTimeout(15, TimeUnit.SECONDS)
                 .build();
 
-        this.bytebin = new BytebinClient(this.httpClient, getConfiguration().get(ConfigKeys.BYTEBIN_URL), "luckperms");
-        this.bytesocks = new BytesocksClient(this.httpClient, getConfiguration().get(ConfigKeys.BYTESOCKS_HOST), "luckperms/editor");
+        this.bytebin = new BytebinClient(
+                this.httpClient,
+                getConfiguration().get(ConfigKeys.BYTEBIN_URL),
+                "luckperms"
+        );
+        this.bytesocks = new BytesocksClient(
+                this.httpClient,
+                getConfiguration().get(ConfigKeys.BYTESOCKS_HOST),
+                getConfiguration().get(ConfigKeys.BYTESOCKS_USE_TLS),
+                "luckperms/editor"
+        );
         this.webEditorStore = new WebEditorStore(this);
 
         // init translation repo and update bundle files
@@ -175,7 +192,7 @@ public abstract class AbstractLuckPermsPlugin implements LuckPermsPlugin {
                 this.fileWatcher = new FileWatcher(this, getBootstrap().getDataDirectory());
             } catch (Throwable e) {
                 // catch throwable here, seems some JVMs throw UnsatisfiedLinkError when trying
-                // to create a watch service. see: https://github.com/lucko/LuckPerms/issues/2066
+                // to create a watch service. see: https://github.com/LuckPerms/LuckPerms/issues/2066
                 getLogger().warn("Error occurred whilst trying to create a file watcher:", e);
             }
         }
@@ -239,6 +256,9 @@ public abstract class AbstractLuckPermsPlugin implements LuckPermsPlugin {
         // perform any platform-specific final setup tasks
         performFinalSetup();
 
+        // mark as running
+        this.running = true;
+
         Duration timeTaken = Duration.between(getBootstrap().getStartupTime(), Instant.now());
         getLogger().info("Successfully enabled. (took " + timeTaken.toMillis() + "ms)");
     }
@@ -262,6 +282,9 @@ public abstract class AbstractLuckPermsPlugin implements LuckPermsPlugin {
 
         // unload extensions
         this.extensionManager.close();
+
+        // mark as not running
+        this.running = false;
 
         // remove any hooks into the platform
         removePlatformHooks();
@@ -375,6 +398,31 @@ public abstract class AbstractLuckPermsPlugin implements LuckPermsPlugin {
     }
 
     @Override
+    public Health runHealthCheck() {
+        if (!this.running) {
+            return HealthCheckResult.unhealthy(Collections.emptyMap());
+        }
+
+        StorageMetadata meta = this.storage.getMeta();
+        if (meta.connected() != null && !meta.connected()) {
+            return HealthCheckResult.unhealthy(Collections.singletonMap("reason", "storage disconnected"));
+        }
+
+        Map<String, Object> map = new LinkedHashMap<>();
+        if (meta.connected() != null) {
+            map.put("storageConnected", meta.connected());
+        }
+        if (meta.ping() != null) {
+            map.put("storagePing", meta.ping());
+        }
+        if (meta.sizeBytes() != null) {
+            map.put("storageSizeBytes", meta.sizeBytes());
+        }
+
+        return HealthCheckResult.healthy(map);
+    }
+
+    @Override
     public Optional<UUID> lookupUniqueId(String username) {
         // get a result from the DB cache
         UUID uniqueId = getStorage().getPlayerUniqueId(username.toLowerCase(Locale.ROOT)).join();
@@ -449,6 +497,10 @@ public abstract class AbstractLuckPermsPlugin implements LuckPermsPlugin {
     @Override
     public LuckPermsConfiguration getConfiguration() {
         return this.configuration;
+    }
+
+    public OkHttpClient getHttpClient() {
+        return this.httpClient;
     }
 
     @Override

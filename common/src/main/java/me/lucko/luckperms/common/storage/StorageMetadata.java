@@ -23,48 +23,55 @@
  *  SOFTWARE.
  */
 
-package net.luckperms.api.event.sync;
+package me.lucko.luckperms.common.storage;
 
-import net.luckperms.api.event.LuckPermsEvent;
-import net.luckperms.api.event.type.Cancellable;
-import net.luckperms.api.event.util.Param;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+public class StorageMetadata {
 
-import java.util.UUID;
+    // remote
+    private Boolean connected;
+    private Integer ping;
 
-/**
- * Called after a request for synchronisation has been received via the messaging service,
- * but before it has actually been completed.
- *
- * <p>Note: the generic {@link PreSyncEvent} will also be called for {@link SyncType#FULL full syncs}.</p>
- */
-public interface PreNetworkSyncEvent extends LuckPermsEvent, Cancellable {
+    // local
+    private Long sizeBytes;
 
-    /**
-     * Gets the ID of the sync request
-     *
-     * @return the id of the sync request
-     */
-    @Param(0)
-    @NonNull UUID getSyncId();
+    public Boolean connected() {
+        return this.connected;
+    }
 
-    /**
-     * Gets the sync type.
-     *
-     * @return the sync type
-     * @since 5.5
-     */
-    @Param(1)
-    @NonNull SyncType getType();
+    public Integer ping() {
+        return this.ping;
+    }
 
-    /**
-     * Gets the unique id of the specific user that will be synced, if applicable.
-     *
-     * @return the unique id of the specific user
-     * @since 5.5
-     */
-    @Param(2)
-    @Nullable UUID getSpecificUserUniqueId();
+    public Long sizeBytes() {
+        return this.sizeBytes;
+    }
+
+    public StorageMetadata connected(boolean connected) {
+        this.connected = connected;
+        return this;
+    }
+
+    public StorageMetadata ping(int ping) {
+        this.ping = ping;
+        return this;
+    }
+
+    public StorageMetadata sizeBytes(long sizeBytes) {
+        this.sizeBytes = sizeBytes;
+        return this;
+    }
+
+    public StorageMetadata combine(StorageMetadata other) {
+        if (this.connected == null || (other.connected != null && !other.connected)) {
+            this.connected = other.connected;
+        }
+        if (this.ping == null || (other.ping != null && other.ping > this.ping)) {
+            this.ping = other.ping;
+        }
+        if (this.sizeBytes == null || (other.sizeBytes != null && other.sizeBytes > this.sizeBytes)) {
+            this.sizeBytes = other.sizeBytes;
+        }
+        return this;
+    }
 
 }

@@ -23,48 +23,29 @@
  *  SOFTWARE.
  */
 
-package net.luckperms.api.event.sync;
+package net.luckperms.api.platform;
 
-import net.luckperms.api.event.LuckPermsEvent;
-import net.luckperms.api.event.type.Cancellable;
-import net.luckperms.api.event.util.Param;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.util.UUID;
+import java.util.Map;
 
 /**
- * Called after a request for synchronisation has been received via the messaging service,
- * but before it has actually been completed.
+ * Represents the "health" status (healthcheck) of a LuckPerms implementation.
  *
- * <p>Note: the generic {@link PreSyncEvent} will also be called for {@link SyncType#FULL full syncs}.</p>
+ * @since 5.5
  */
-public interface PreNetworkSyncEvent extends LuckPermsEvent, Cancellable {
+public interface Health {
 
     /**
-     * Gets the ID of the sync request
+     * Gets if LuckPerms is healthy.
      *
-     * @return the id of the sync request
+     * @return if LuckPerms is healthy
      */
-    @Param(0)
-    @NonNull UUID getSyncId();
+    boolean isHealthy();
 
     /**
-     * Gets the sync type.
+     * Gets extra metadata/details about the healthcheck result.
      *
-     * @return the sync type
-     * @since 5.5
+     * @return details about the healthcheck status
      */
-    @Param(1)
-    @NonNull SyncType getType();
-
-    /**
-     * Gets the unique id of the specific user that will be synced, if applicable.
-     *
-     * @return the unique id of the specific user
-     * @since 5.5
-     */
-    @Param(2)
-    @Nullable UUID getSpecificUserUniqueId();
+    Map<String, Object> getDetails();
 
 }

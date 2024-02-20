@@ -49,6 +49,7 @@ import net.minecraft.util.IChatComponent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 
 public class ForgeConnectionListener extends AbstractConnectionListener {
+
     private final LPForgePlugin plugin;
 
     public ForgeConnectionListener(final LPForgePlugin plugin) {
@@ -70,46 +71,6 @@ public class ForgeConnectionListener extends AbstractConnectionListener {
         event.enqueueWork(CompletableFuture.runAsync(
                 () -> this.onPlayerNegotiationAsync(event.getConnection(), uniqueId, username),
                 this.plugin.getBootstrap().getScheduler().async()));
-    }
-
-    private void onPlayerNegotiationAsync(final NetworkManager connection, final UUID uniqueId,
-            final String username) {
-        if (this.plugin.getConfiguration().get(ConfigKeys.DEBUG_LOGINS)) {
-            this.plugin.getLogger()
-                    .info("Processing pre-login (async phase) for " + uniqueId + " - " + username);
-        }
-
-        /* Actually process the login for the connection.
-           We do this here to delay the login until the data is ready.
-           If the login gets cancelled later on, then this will be cleaned up.
-
-           This includes:
-           - loading uuid data
-           - loading permissions
-           - creating a user instance in the UserManager for this connection.
-           - setting up cached data. */
-        try {
-            final User user = this.loadUser(uniqueId, username);
-            this.recordConnection(uniqueId);
-            this.plugin.getEventDispatcher().dispatchPlayerLoginProcess(uniqueId, username, user);
-        } catch (final Exception ex) {
-            this.plugin.getLogger()
-                    .severe("Exception occurred whilst loading data for " + uniqueId + " - "
-                            + username, ex);
-
-            if (this.plugin.getConfiguration().get(ConfigKeys.CANCEL_FAILED_LOGINS)) {
-                final Component component =
-                        TranslationManager.render(Message.LOADING_DATABASE_ERROR.build());
-                final IChatComponent chatComponent = ForgeSenderFactory.toNativeText(component);
-
-                connection.scheduleOutboundPacket(
-                        new S40PacketDisconnect(ForgeSenderFactory.toNativeText(component)),
-                        p_operationComplete_1_ -> connection.closeChannel(chatComponent));
-                connection.disableAutoRead();
-                this.plugin.getEventDispatcher()
-                        .dispatchPlayerLoginProcess(uniqueId, username, null);
-            }
-        }
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -136,9 +97,8 @@ public class ForgeConnectionListener extends AbstractConnectionListener {
             }
 
             if (player.playerNetServerHandler != null) {
-                final Component component =
-                        TranslationManager.render(Message.LOADING_STATE_ERROR.build(),
-                                Locale.getDefault());
+                final Component component = TranslationManager.render(
+                        Message.LOADING_STATE_ERROR.build(), Locale.getDefault());
 
                 if (this.plugin.getConfiguration().get(ConfigKeys.CANCEL_FAILED_LOGINS)) {
                     final IChatComponent chatComponent = ForgeSenderFactory.toNativeText(component);
@@ -167,4 +127,43 @@ public class ForgeConnectionListener extends AbstractConnectionListener {
         this.handleDisconnect(player.getGameProfile().getId());
     }
 
+    private void onPlayerNegotiationAsync(final NetworkManager connection, final UUID uniqueId,
+            final String username) {
+        if (this.plugin.getConfiguration().get(ConfigKeys.DEBUG_LOGINS)) {
+            this.plugin.getLogger()
+                    .info("Processing pre-login (async phase) for " + uniqueId + " - " + username);
+        }
+
+        /* Actually process the login for the connection.
+           We do this here to delay the login until the data is ready.
+           If the login gets cancelled later on, then this will be cleaned up.
+
+           This includes:
+           - loading uuid data
+           - loading permissions
+           - creating a user instance in the UserManager for this connection.
+           - setting up cached data. */
+        try {
+            final User user = this.loadUser(uniqueId, username);
+            this.recordConnection(uniqueId);
+            this.plugin.getEventDispatcher().dispatchPlayerLoginProcess(uniqueId, username, user);
+        } catch (final Exception ex) {
+            this.plugin.getLogger()
+                    .severe("Exception occurred whilst loading data for " + uniqueId + " - "
+                            + username, ex);
+
+            if (this.plugin.getConfiguration().get(ConfigKeys.CANCEL_FAILED_LOGINS)) {
+                final Component component = TranslationManager.render(
+                        Message.LOADING_DATABASE_ERROR.build());
+                final IChatComponent chatComponent = ForgeSenderFactory.toNativeText(component);
+
+                connection.scheduleOutboundPacket(
+                        new S40PacketDisconnect(ForgeSenderFactory.toNativeText(component)),
+                        p_operationComplete_1_ -> connection.closeChannel(chatComponent));
+                connection.disableAutoRead();
+                this.plugin.getEventDispatcher()
+                        .dispatchPlayerLoginProcess(uniqueId, username, null);
+            }
+        }
+    }
 }

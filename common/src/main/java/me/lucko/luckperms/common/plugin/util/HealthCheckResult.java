@@ -23,48 +23,43 @@
  *  SOFTWARE.
  */
 
-package net.luckperms.api.event.sync;
+package me.lucko.luckperms.common.plugin.util;
 
-import net.luckperms.api.event.LuckPermsEvent;
-import net.luckperms.api.event.type.Cancellable;
-import net.luckperms.api.event.util.Param;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import com.google.gson.Gson;
+import java.util.Map;
+import net.luckperms.api.platform.Health;
 
-import java.util.UUID;
+public class HealthCheckResult implements Health {
 
-/**
- * Called after a request for synchronisation has been received via the messaging service,
- * but before it has actually been completed.
- *
- * <p>Note: the generic {@link PreSyncEvent} will also be called for {@link SyncType#FULL full syncs}.</p>
- */
-public interface PreNetworkSyncEvent extends LuckPermsEvent, Cancellable {
+    private static final Gson GSON = new Gson();
+    private final boolean healthy;
+    private final Map<String, Object> details;
 
-    /**
-     * Gets the ID of the sync request
-     *
-     * @return the id of the sync request
-     */
-    @Param(0)
-    @NonNull UUID getSyncId();
+    HealthCheckResult(final boolean healthy, final Map<String, Object> details) {
+        this.healthy = healthy;
+        this.details = details;
+    }
 
-    /**
-     * Gets the sync type.
-     *
-     * @return the sync type
-     * @since 5.5
-     */
-    @Param(1)
-    @NonNull SyncType getType();
+    public static HealthCheckResult healthy(final Map<String, Object> details) {
+        return new HealthCheckResult(true, details);
+    }
 
-    /**
-     * Gets the unique id of the specific user that will be synced, if applicable.
-     *
-     * @return the unique id of the specific user
-     * @since 5.5
-     */
-    @Param(2)
-    @Nullable UUID getSpecificUserUniqueId();
+    public static HealthCheckResult unhealthy(final Map<String, Object> details) {
+        return new HealthCheckResult(false, details);
+    }
 
+    @Override
+    public boolean isHealthy() {
+        return this.healthy;
+    }
+
+    @Override
+    public Map<String, Object> getDetails() {
+        return this.details;
+    }
+
+    @Override
+    public String toString() {
+        return GSON.toJson(this);
+    }
 }

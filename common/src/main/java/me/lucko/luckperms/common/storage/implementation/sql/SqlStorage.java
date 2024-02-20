@@ -33,7 +33,6 @@ import me.lucko.luckperms.common.actionlog.LoggedAction;
 import me.lucko.luckperms.common.bulkupdate.BulkUpdate;
 import me.lucko.luckperms.common.bulkupdate.BulkUpdateStatistics;
 import me.lucko.luckperms.common.bulkupdate.PreparedStatementBuilder;
-import me.lucko.luckperms.common.config.ConfigKeys;
 import me.lucko.luckperms.common.context.serializer.ContextSetJsonSerializer;
 import me.lucko.luckperms.common.model.Group;
 import me.lucko.luckperms.common.model.Track;
@@ -42,6 +41,7 @@ import me.lucko.luckperms.common.model.manager.group.GroupManager;
 import me.lucko.luckperms.common.node.factory.NodeBuilders;
 import me.lucko.luckperms.common.node.matcher.ConstraintNodeMatcher;
 import me.lucko.luckperms.common.plugin.LuckPermsPlugin;
+import me.lucko.luckperms.common.storage.StorageMetadata;
 import me.lucko.luckperms.common.storage.implementation.StorageImplementation;
 import me.lucko.luckperms.common.storage.implementation.sql.connection.ConnectionFactory;
 import me.lucko.luckperms.common.storage.misc.NodeEntry;
@@ -49,8 +49,6 @@ import me.lucko.luckperms.common.storage.misc.PlayerSaveResultImpl;
 import me.lucko.luckperms.common.util.Difference;
 import me.lucko.luckperms.common.util.Uuids;
 import me.lucko.luckperms.common.util.gson.GsonProvider;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.luckperms.api.actionlog.Action;
 import net.luckperms.api.context.DefaultContextKeys;
 import net.luckperms.api.context.MutableContextSet;
@@ -229,18 +227,8 @@ public class SqlStorage implements StorageImplementation {
     }
 
     @Override
-    public Map<Component, Component> getMeta() {
-        Map<Component, Component> meta = this.connectionFactory.getMeta();
-
-        String tablePrefix = this.plugin.getConfiguration().get(ConfigKeys.SQL_TABLE_PREFIX);
-        if (!tablePrefix.equals("luckperms_")) {
-            meta.put(
-                    Component.translatable("luckperms.command.info.storage.meta.table-prefix-key"),
-                    Component.text(tablePrefix, NamedTextColor.WHITE)
-            );
-        }
-
-        return meta;
+    public StorageMetadata getMeta() {
+        return this.connectionFactory.getMeta();
     }
 
     @Override
@@ -398,6 +386,13 @@ public class SqlStorage implements StorageImplementation {
 
             return true;
         });
+
+        // if the user only has the default group, delete their data
+        boolean isDefaultUser = !this.plugin.getUserManager().isNonDefaultUser(user);
+        if (changes != null && isDefaultUser) {
+            user.normalData().addDefaultNodeToChangeSet();
+            changes = null;
+        }
 
         if (changes == null) {
             try (Connection c = this.connectionFactory.getConnection()) {
@@ -879,7 +874,7 @@ public class SqlStorage implements StorageImplementation {
                 while (rs.next()) {
                     Node node = readNode(rs);
                     if (node != null) {
-                        nodes.add(readNode(rs));
+                        nodes.add(node);
                     }
                 }
             }
